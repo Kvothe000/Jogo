@@ -1,0 +1,17 @@
+{
+    "name": "jogo",
+    "private": true,
+    "version": "0.0.0",
+    "description": "Roguelite de Criaturas Determinísticas — GDD v0.4.1 (F0)",
+    "workspaces": [
+        "packages/*",
+        "apps/*"
+    ],
+    "scripts": {
+        "dev": "npm run dev -w @jogo/game",
+        "build": "npm run build -w @jogo/game",
+        "preview": "npm run preview -w @jogo/game",
+        "test": "npm run test -w @jogo/engine",
+        "test:watch": "npm run test:watch -w @jogo/engine"
+    }
+}
