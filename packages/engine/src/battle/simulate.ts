@@ -85,7 +85,17 @@ export function simulateBattle(playerCreatures: Creature[], enemyCreatures: Crea
             if (healFx && passivesEnabled(u)) {
                 const heal = Math.max(1, Math.round(u.maxHp * 0.05));
                 u.hp = Math.min(u.maxHp, u.hp + heal);
-                events.push({ round, actorId: u.id, actorLabel: u.label, targetId: null, targetLabel: null, kind: 'passiva', amount: heal, note: `${healFx.name} +${heal} HP` });
+                events.push({
+                    round,
+                    actorId: u.id,
+                    actorLabel: u.label,
+                    actorHp: u.hp,
+                    targetId: null,
+                    targetLabel: null,
+                    kind: 'passiva',
+                    amount: heal,
+                    note: `${healFx.name} +${heal} HP`,
+                });
             }
         }
 
@@ -114,13 +124,28 @@ export function simulateBattle(playerCreatures: Creature[], enemyCreatures: Crea
                 const { amount, notes } = damageAmount(actor, target);
                 target.hp = Math.max(0, target.hp - amount);
                 events.push({
-                    round, actorId: actor.id, actorLabel: actor.label,
-                    targetId: target.id, targetLabel: target.label,
-                    kind: 'ataque', amount,
+                    round,
+                    actorId: actor.id,
+                    actorLabel: actor.label,
+                    actorHp: actor.hp,
+                    targetId: target.id,
+                    targetLabel: target.label,
+                    targetHp: target.hp,
+                    kind: 'ataque',
+                    amount,
                     note: notes.length > 0 ? notes.join(' · ') : undefined,
                 });
                 if (target.hp <= 0) {
-                    events.push({ round, actorId: target.id, actorLabel: target.label, targetId: null, targetLabel: null, kind: 'morte', note: `${target.label} caiu` });
+                    events.push({
+                        round,
+                        actorId: target.id,
+                        actorLabel: target.label,
+                        actorHp: 0,
+                        targetId: null,
+                        targetLabel: null,
+                        kind: 'morte',
+                        note: `${target.label} caiu`,
+                    });
                     if (alive(enemies).length === 0) {
                         winner = actor.side;
                         break;

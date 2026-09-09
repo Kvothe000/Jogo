@@ -130,8 +130,12 @@ export interface BattleEvent {
     round: number;
     actorId: string;
     actorLabel: string;
+    /** HP do ator após a ação (para desenhar a barra de vida). */
+    actorHp?: number;
     targetId: string | null;
     targetLabel: string | null;
+    /** HP do alvo após o dano (para desenhar a barra de vida). */
+    targetHp?: number;
     kind: 'ataque' | 'passiva' | 'morte';
     amount?: number;
     note?: string;

@@ -367,3 +367,110 @@ button:disabled {
     color: var(--muted);
     margin-top: 8px;
 }
+
+/* ---- Tela de batalha com replay visual ---- */
+.battle-layout {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    margin: 12px 0;
+}
+
+.battle-side {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.battle-side h3 {
+    margin: 0 0 4px;
+    font-size: 0.85rem;
+    color: var(--muted);
+}
+
+.battle-vs {
+    align-self: center;
+    font-weight: 800;
+    color: var(--amber);
+    font-size: 1.2rem;
+    padding: 0 4px;
+}
+
+.unit-card {
+    background: #151824;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 8px 10px;
+}
+
+.unit-card.dead {
+    opacity: 0.45;
+}
+
+.unit-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.unit-head strong {
+    font-size: 0.85rem;
+}
+
+.hp-bar {
+    position: relative;
+    height: 10px;
+    border-radius: 999px;
+    background: #262b3a;
+    overflow: hidden;
+}
+
+.hp-fill {
+    height: 100%;
+    border-radius: 999px;
+    transition: width 0.2s ease;
+}
+
+.hp-bar.good .hp-fill {
+    background: #43a047;
+}
+
+.hp-bar.warn .hp-fill {
+    background: #fdd835;
+}
+
+.hp-bar.bad .hp-fill {
+    background: #e53935;
+}
+
+.hp-text {
+    font-size: 0.72rem;
+    color: var(--muted);
+    margin-top: 4px;
+    display: block;
+}
+
+.event-line {
+    margin: 10px 0;
+    padding: 10px 12px;
+    background: #1b2030;
+    border-left: 3px solid var(--amber);
+    border-radius: 6px;
+    font-size: 0.9rem;
+}
+
+.replay-controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin: 10px 0;
+}
+
+.step-count {
+    margin-left: auto;
+    color: var(--muted);
+    font-size: 0.8rem;
+}
