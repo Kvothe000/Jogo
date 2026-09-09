@@ -1,4 +1,4 @@
-import type { Creature, Recipe, Stats, SynergyEffect, TeamState, Axis, PartValue } from '../types';
+import type { Creature, Recipe, Stats, SynergyEffect, Axis, PartValue } from '../types';
 import { BASE_STATS, CORES, BODIES, INSTINCTS, ORIGINS } from '../data/parts';
 import { SYNERGY_RULES } from '../data/synergy-rules';
 import { axisPart, recipeId, withAxisPart } from './identity';
