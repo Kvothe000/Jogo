@@ -85,8 +85,8 @@ export function buildEnemyTeam(stage: number, runSeed: number): Creature[] {
     }
 
     // Curva bem suave. Ajuste estes multiplicadores se quiser mais/menos dificuldade.
-    const hpMult = 0.8 + (stage - 1) * 0.12;    // 0.80 · 0.92 · 1.04 · 1.16
-    const statMult = 0.75 + (stage - 1) * 0.1;  // 0.75 · 0.85 · 0.95 · 1.05
+    const hpMult = 0.8 + (stage - 1) * 0.16;    // 0.80 · 0.92 · 1.04 · 1.16
+    const statMult = 0.75 + (stage - 1) * 0.2;  // 0.75 · 0.85 · 0.95 · 1.05
     const count = stage <= 2 ? 1 : 2;           // Etapa 1-2: 1 inimigo · 3-4: 2 inimigos
 
     const pool = STAGE_POOLS[stage - 1];
