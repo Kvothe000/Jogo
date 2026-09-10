@@ -1,6 +1,6 @@
 import type { Axis, Creature, Offer, OfferPreview, PartValue, Recipe } from '../types';
 import { BODY_LIST, CORE_LIST, INSTINCT_LIST, ORIGIN_LIST } from '../data/parts';
-import { applyCreate, applyMutate, teamAtkTotal, teamDefTotal, teamDelta, teamHpTotal, teamSpdTotal } from './creature';
+import { applyCreate, applyMutate, applySacrifice, teamAtkTotal, teamDefTotal, teamDelta, teamHpTotal, teamSpdTotal } from './creature';
 
 // RNG determinístico (mulberry32) — mesma seed → mesma sequência.
 export function mulberry32(seed: number): () => number {
@@ -45,23 +45,31 @@ function makeMutate(rng: () => number, offerId: string, excludeAxes: Axis[] = []
 }
 
 /** Gera até 3 ofertas determinísticas para a etapa. MUTAR vem sem alvo: o jogador escolhe. */
+/** Gera até 3 ofertas determinísticas para a etapa. MUTAR/SACRIFICAR vêm sem alvo: o jogador escolhe. */
 export function generateOffers(runSeed: number, stage: number, team: Creature[]): Offer[] {
     const rng = mulberry32((runSeed ^ (stage * 2654435761)) >>> 0);
-
     const m1 = makeMutate(rng, `${stage}-m1`);
     const offers: Offer[] = [m1];
-
-    // 2ª oferta: CRIAR se houver slot vazio (prioridade nas primeiras etapas); senão MUTAR.
+    // 2ª oferta: CRIAR se houver slot vazio; time cheio → SACRIFICAR (F1, GDD seção 4.1).
     if (team.length < 3) {
         offers.push({ kind: 'CRIAR', offerId: `${stage}-c1`, recipe: randomRecipe(rng) });
     } else {
-        offers.push(makeMutate(rng, `${stage}-m2`, [m1.axis]));
+        offers.push(makeSacrifice(`${stage}-s1`));
     }
-
     // 3ª oferta: MUTAR com eixo diferente da 1ª (variedade de decisão).
     offers.push(makeMutate(rng, `${stage}-m3`, [m1.axis]));
-
     return offers.slice(0, 3);
+}
+
+/** Oferta SACRIFICAR nasce sem escolhas: o jogador define vítima, alvo e eixo na UI. */
+function makeSacrifice(offerId: string): Extract<Offer, { kind: 'SACRIFICAR' }> {
+    return { kind: 'SACRIFICAR', offerId, victimIndex: null, targetIndex: null, axis: null };
+}
+
+/** Vincula as escolhas (vítima, alvo, eixo) a uma oferta SACRIFICAR. */
+export function resolveSacrifice(offer: Offer, victimIndex: number, targetIndex: number, axis: Axis): Offer {
+    if (offer.kind !== 'SACRIFICAR') return offer;
+    return { ...offer, victimIndex, targetIndex, axis };
 }
 
 /** Vincula o alvo escolhido pelo jogador a uma oferta MUTAR. */
@@ -71,19 +79,29 @@ export function withTarget(offer: Offer, targetIndex: number): Offer {
 }
 
 /** Aplica uma oferta ao time atual (validação + imutabilidade). */
+/** Aplica uma oferta ao time atual (validação + imutabilidade). */
 export function applyOffer(team: Creature[], offer: Offer): Creature[] {
     if (offer.kind === 'MUTAR') {
         if (offer.targetIndex === null) throw new Error('MUTAR inválido: escolha a criatura-alvo.');
         return applyMutate(team, offer.targetIndex, offer.axis, offer.partId);
     }
+    if (offer.kind === 'SACRIFICAR') {
+        if (offer.victimIndex === null || offer.targetIndex === null || offer.axis === null) {
+            throw new Error('SACRIFICAR inválido: escolha vítima, alvo e eixo.');
+        }
+        return applySacrifice(team, offer.victimIndex, offer.targetIndex, offer.axis);
+    }
     return applyCreate(team, offer.recipe);
 }
 
-/** Preview numérico exato (GDD seção 4.3) — usado pela UI antes de confirmar. */
-/** Preview numérico exato (GDD seção 4.3) — usado pela UI antes de confirmar. */
 export function previewOffer(team: Creature[], offer: Offer): OfferPreview {
-    // Estreita o tipo: só a variante MUTAR tem targetIndex.
-    const resolved = offer.kind === 'MUTAR' ? withTarget(offer, offer.targetIndex ?? 0) : offer;
+    // Estreita o tipo: resolve MUTAR (targetIndex) e SACRIFICAR (vítima, alvo, eixo).
+    const resolved =
+        offer.kind === 'MUTAR'
+            ? withTarget(offer, offer.targetIndex ?? 0)
+            : offer.kind === 'SACRIFICAR'
+                ? resolveSacrifice(offer, offer.victimIndex ?? 0, offer.targetIndex ?? 0, offer.axis ?? 'CORE')
+                : offer;
     const teamAfter = applyOffer(team, resolved);
     const delta = teamDelta(team, teamAfter);
     return {

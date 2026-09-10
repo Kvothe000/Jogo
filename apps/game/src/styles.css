@@ -474,3 +474,24 @@ button:disabled {
     color: var(--muted);
     font-size: 0.8rem;
 }
+
+.contract-badge {
+    margin: 8px 0;
+    padding: 8px 12px;
+    background: #1b2030;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--amber);
+    border-radius: 6px;
+    font-size: 0.85rem;
+    color: var(--muted);
+}
+
+.contract-verdict.ok {
+    color: #43a047;
+    font-weight: 700;
+}
+
+.contract-verdict.fail {
+    color: #e53935;
+    font-weight: 700;
+}

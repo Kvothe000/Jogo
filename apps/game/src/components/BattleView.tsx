@@ -10,12 +10,12 @@ interface HpState {
 }
 
 function buildHpMap(
-    team: { id: string; stats: { hp: number } }[],
-    enemy: { id: string; stats: { hp: number } }[],
+    team: { id: string; hp?: number; stats: { hp: number } }[],
+    enemy: { id: string; hp?: number; stats: { hp: number } }[],
 ): Record<string, HpState> {
     const map: Record<string, HpState> = {};
-    for (const c of team) map[c.id] = { hp: c.stats.hp, max: c.stats.hp };
-    for (const c of enemy) map[c.id] = { hp: c.stats.hp, max: c.stats.hp };
+    for (const c of team) map[c.id] = { hp: c.hp ?? c.stats.hp, max: c.stats.hp };
+    for (const c of enemy) map[c.id] = { hp: c.hp ?? c.stats.hp, max: c.stats.hp };
     return map;
 }
 

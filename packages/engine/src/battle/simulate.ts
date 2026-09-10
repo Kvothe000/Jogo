@@ -10,7 +10,7 @@ export function toUnits(creatures: Creature[], side: BattleSide): BattleUnit[] {
         recipe: c.recipe,
         stats: c.stats,
         maxHp: c.stats.hp,
-        hp: c.stats.hp,
+        hp: c.hp ?? c.stats.hp,
         effects: c.effects,
         disabledPassives: c.disabledPassives,
         side,
@@ -164,6 +164,7 @@ export function simulateBattle(playerCreatures: Creature[], enemyCreatures: Crea
         rounds,
         events,
         playerSurvivors: alive(playerUnits).length,
+        playerHpAfter: Object.fromEntries(playerUnits.map((u) => [u.id, u.hp])),
     };
 }
 

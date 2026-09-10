@@ -1,4 +1,4 @@
-import type { Creature, Recipe, Stats, SynergyEffect, Axis, PartValue } from '../types';
+import type { Creature, Recipe, Stats, SynergyEffect, Axis, PartValue, BattleResult } from '../types';
 import { BASE_STATS, CORES, BODIES, INSTINCTS, ORIGINS } from '../data/parts';
 import { SYNERGY_RULES } from '../data/synergy-rules';
 import { axisPart, recipeId, withAxisPart } from './identity';
@@ -60,6 +60,7 @@ export function buildCreature(recipe: Recipe): Creature {
         baseStats,
         effects,
         stats,
+        hp: stats.hp,
         disabledPassives: effects.some((fx) => fx.disablePassives === true),
     };
 }
@@ -72,6 +73,7 @@ export function applyMutate(team: Creature[], targetIndex: number, axis: Axis, p
     if (!target) throw new Error(`MUTAR inválido: criatura ${targetIndex} não existe.`);
     const nextRecipe = withAxisPart(target.recipe, axis, partId);
     const rebuilt = buildCreature(nextRecipe);
+    rebuilt.hp = Math.min(rebuilt.stats.hp, target.hp);
     const next = team.slice();
     next[targetIndex] = rebuilt;
     return next;
@@ -119,4 +121,38 @@ export function creaturePower(c: Creature): number {
 
 export function teamPower(team: Creature[]): number {
     return team.reduce((sum, c) => sum + creaturePower(c), 0);
+}
+/**
+ * Aplica SACRIFICAR (GDD seção 4.1, F1): remove a criatura vítima do time e
+ * transfere a parte do eixo escolhido da vítima para a criatura-alvo (que é
+ * reconstruída — sinergias recalculadas).
+ * Regras: exige time com >= 2 criaturas; vítima e alvo devem ser diferentes.
+ */
+export function applySacrifice(team: Creature[], victimIndex: number, targetIndex: number, axis: Axis): Creature[] {
+    if (team.length < 2) throw new Error('SACRIFICAR inválido: é preciso ter pelo menos 2 criaturas.');
+    if (victimIndex === targetIndex) throw new Error('SACRIFICAR inválido: vítima e alvo devem ser diferentes.');
+    const victim = team[victimIndex];
+    const target = team[targetIndex];
+    if (!victim || !target) throw new Error('SACRIFICAR inválido: criatura não encontrada.');
+    const part = axisPart(victim.recipe, axis);
+    const withoutVictim = team.filter((_, i) => i !== victimIndex);
+    const shiftedTarget = victimIndex < targetIndex ? targetIndex - 1 : targetIndex;
+    const nextRecipe = withAxisPart(target.recipe, axis, part);
+    const rebuilt = buildCreature(nextRecipe);
+    rebuilt.hp = Math.min(rebuilt.stats.hp, target.hp);
+    const next = withoutVictim.slice();
+    next[shiftedTarget] = rebuilt;
+    return next;
+}
+/**
+ * Grava o HP final da batalha de volta no time do jogador (persistência entre
+ * batalhas — GDD seção 7.3, F1). Criaturas que caíram ficam com hp = 0.
+ * Não muta o array original.
+ */
+export function applyBattleResult(team: Creature[], result: BattleResult): Creature[] {
+    return team.map((c) => {
+        const after = result.playerHpAfter?.[c.id];
+        if (after === undefined) return c;
+        return { ...c, hp: Math.max(0, Math.min(c.stats.hp, after)) };
+    });
 }

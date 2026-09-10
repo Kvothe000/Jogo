@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
-import { analyzeDefeat } from '@jogo/engine';
+import { analyzeDefeat, evaluateContract } from '@jogo/engine';
+import type { ContractContext } from '@jogo/engine';
 import { useGame } from '../store';
 
 export default function ResultView() {
@@ -8,6 +9,10 @@ export default function ResultView() {
     const team = useGame((s) => s.team);
     const enemy = useGame((s) => s.enemy);
     const novaRun = useGame((s) => s.novaRun);
+    const contract = useGame((s) => s.contract);
+    const casualties = useGame((s) => s.casualties);
+    const createdCount = useGame((s) => s.createdCount);
+    const sacrificedCount = useGame((s) => s.sacrificedCount);
 
     const analysis = useMemo(() => {
         if (!result || result.winner === 'player') return null;
@@ -15,6 +20,18 @@ export default function ResultView() {
     }, [result, team, enemy]);
 
     const venceu = phase === 'victory';
+
+    const contratoCumprido = useMemo(() => {
+        if (!contract) return null;
+        const ctx: ContractContext = {
+            victory: venceu,
+            playerCasualties: casualties,
+            finalTeam: team,
+            createdCount,
+            sacrificedCount,
+        };
+        return evaluateContract(contract, ctx);
+    }, [contract, venceu, casualties, team, createdCount, sacrificedCount]);
 
     return (
         <section className={`result ${venceu ? 'win' : 'lose'}`}>
@@ -34,6 +51,14 @@ export default function ResultView() {
                     )}
                 </>
             )}
+
+            {contract && contratoCumprido !== null && (
+                <p className={`contract-verdict ${contratoCumprido ? 'ok' : 'fail'}`}>
+                    {contratoCumprido ? '✅' : '❌'} Contrato: {contract.title} —{' '}
+                    {contratoCumprido ? 'cumprido!' : 'não cumprido.'}
+                </p>
+            )}
+
             <button className="battle-btn" onClick={novaRun}>
                 Nova Run
             </button>

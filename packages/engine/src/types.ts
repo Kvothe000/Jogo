@@ -100,6 +100,8 @@ export interface Creature {
     effects: SynergyEffect[];
     /** Atributos finais = baseStats + efeitos de sinergia. */
     stats: Stats;
+    /** HP atual (persistente entre batalhas da mesma run). Máximo = stats.hp. */
+    hp: number;
     /** true quando LUZ+SOMBRA (Conflito Interno) desativa o INSTINCT. */
     disabledPassives: boolean;
 }
@@ -107,7 +109,8 @@ export interface Creature {
 // ---- Ofertas (escolhas da run) ----
 export type Offer =
     | { kind: 'MUTAR'; offerId: string; axis: Axis; partId: PartValue; targetIndex: number | null }
-    | { kind: 'CRIAR'; offerId: string; recipe: Recipe };
+    | { kind: 'CRIAR'; offerId: string; recipe: Recipe }
+    | { kind: 'SACRIFICAR'; offerId: string; victimIndex: number | null; targetIndex: number | null; axis: Axis | null };
 
 export interface OfferPreview {
     teamAfter: Creature[];
@@ -158,6 +161,8 @@ export interface BattleResult {
     rounds: number;
     events: BattleEvent[];
     playerSurvivors: number;
+    /** HP final de cada criatura do jogador (id → hp) — para persistência entre batalhas. */
+    playerHpAfter: Record<string, number>;
 }
 
 export interface DefeatAnalysis {

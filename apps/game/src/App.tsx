@@ -10,6 +10,7 @@ export default function App() {
     const phase = useGame((s) => s.phase);
     const stage = useGame((s) => s.stage);
     const startRun = useGame((s) => s.startRun);
+    const contract = useGame((s) => s.contract);
 
     useEffect(() => {
         startRun();
@@ -21,6 +22,12 @@ export default function App() {
                 <h1>Jogo — F0</h1>
                 <span className="stage">Etapa {stage} / 5</span>
             </header>
+
+            {contract && (
+                <p className="contract-badge">
+                    🎯 Contrato: <b>{contract.title}</b> — {contract.desc}
+                </p>
+            )}
 
             <TeamView />
 

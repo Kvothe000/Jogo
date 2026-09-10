@@ -1,15 +1,21 @@
 import { create } from 'zustand';
 import {
+    applyBattleResult,
     applyOffer,
+    applyRecovery,
     buildEnemyTeam,
+    generateContractForRun,
     generateOffers,
     newRun,
+    resolveSacrifice,
     simulateBattle,
     withTarget,
     STAGES_TOTAL,
+    type Axis,
     type BattleResult,
     type Creature,
     type Offer,
+    type RunContract,
     type RunState,
 } from '@jogo/engine';
 
@@ -23,13 +29,18 @@ interface GameStore {
     offers: Offer[];
     enemy: Creature[];
     result: BattleResult | null;
+    contract: RunContract | null;
+    casualties: number;
+    createdCount: number;
+    sacrificedCount: number;
 
     startRun: () => void;
-    chooseOffer: (offer: Offer, targetIndex?: number) => void;
+    chooseOffer: (offer: Offer, opts?: { targetIndex?: number; victimIndex?: number; axis?: Axis }) => void;
     toBattle: () => void;
     startBattle: () => void;
     moveCreature: (from: number, to: number) => void;
     continueAfterBattle: (result: BattleResult) => void;
+    recover: (healPct: number) => void;
     novaRun: () => void;
 }
 
@@ -41,6 +52,10 @@ export const useGame = create<GameStore>((set, get) => ({
     offers: [],
     enemy: [],
     result: null,
+    contract: null,
+    casualties: 0,
+    createdCount: 0,
+    sacrificedCount: 0,
 
     startRun: () => {
         const run: RunState = newRun();
@@ -52,16 +67,31 @@ export const useGame = create<GameStore>((set, get) => ({
             enemy: [],
             result: null,
             phase: 'offer',
+            contract: generateContractForRun(run.runSeed),
+            casualties: 0,
+            createdCount: 0,
+            sacrificedCount: 0,
         });
     },
 
     // Aplica a oferta e AVANÇA para o reconhecimento — 1 escolha por etapa.
-    chooseOffer: (offer: Offer, targetIndex?: number) => {
-        const { team, runSeed, stage } = get();
-        const final = offer.kind === 'MUTAR' ? withTarget(offer, targetIndex ?? 0) : offer;
+    chooseOffer: (offer: Offer, opts?: { targetIndex?: number; victimIndex?: number; axis?: Axis }) => {
+        const { team, runSeed, stage, createdCount, sacrificedCount } = get();
+        let final: Offer = offer;
+        if (offer.kind === 'MUTAR') final = withTarget(offer, opts?.targetIndex ?? 0);
+        if (offer.kind === 'SACRIFICAR') {
+            final = resolveSacrifice(offer, opts?.victimIndex ?? 0, opts?.targetIndex ?? 0, opts?.axis ?? 'CORE');
+        }
         const nextTeam = applyOffer(team, final);
         const enemy = buildEnemyTeam(stage, runSeed);
-        set({ team: nextTeam, enemy, result: null, phase: 'scouting' });
+        set({
+            team: nextTeam,
+            enemy,
+            result: null,
+            phase: 'scouting',
+            createdCount: offer.kind === 'CRIAR' ? createdCount + 1 : createdCount,
+            sacrificedCount: offer.kind === 'SACRIFICAR' ? sacrificedCount + 1 : sacrificedCount,
+        });
     },
 
     // "Pular escolha" / ir direto para a batalha.
@@ -72,9 +102,11 @@ export const useGame = create<GameStore>((set, get) => ({
     },
 
     startBattle: () => {
-        const { team, enemy } = get();
+        const { team, enemy, casualties } = get();
         const result = simulateBattle(team, enemy);
-        set({ result, phase: 'battle' });
+        const playerIds = new Set(team.map((c) => c.id));
+        const deaths = result.events.filter((e) => e.kind === 'morte' && playerIds.has(e.actorId)).length;
+        set({ result, phase: 'battle', casualties: casualties + deaths });
     },
 
     moveCreature: (from: number, to: number) =>
@@ -92,18 +124,30 @@ export const useGame = create<GameStore>((set, get) => ({
             set({ phase: 'result' });
             return;
         }
+        // Persistência de HP (GDD 7.3, F1): grava o HP que sobrou no time.
+        // Criaturas que caíram ficam com hp = 0 até serem recuperadas.
+        const teamAfter = applyBattleResult(team, result);
+        console.log('HP após batalha:', teamAfter.map((c) => `${c.id}=${c.hp}/${c.stats.hp}`));
+
         if (stage >= STAGES_TOTAL) {
-            set({ phase: 'victory' });
+            set({ team: teamAfter, phase: 'victory' });
             return;
         }
         const nextStage = stage + 1;
         set({
             stage: nextStage,
+            team: teamAfter,
             phase: 'offer',
             result: null,
             enemy: [],
-            offers: generateOffers(runSeed, nextStage, team),
+            offers: generateOffers(runSeed, nextStage, teamAfter),
         });
+    },
+
+    // Cura o time (nó RECUPERAÇÃO do mapa de rotas). Não muta o original.
+    recover: (healPct: number) => {
+        const { team } = get();
+        set({ team: applyRecovery(team, healPct) });
     },
 
     novaRun: () => get().startRun(),
